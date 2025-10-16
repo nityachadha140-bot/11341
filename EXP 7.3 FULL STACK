@@ -1,0 +1,151 @@
+// server.js  — ONE FILE (Node server + inline client UI)
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+
+// ---- Socket.io events ----
+io.on("connection", (socket) => {
+  console.log("connected:", socket.id);
+
+  socket.on("chat:message", (payload) => {
+    const msg = {
+      id: socket.id,
+      name: (payload?.name || "Anonymous").trim(),
+      text: String(payload?.text ?? ""),
+      ts: Date.now(),
+    };
+    io.emit("chat:message", msg); // broadcast to everyone
+  });
+
+  socket.on("disconnect", () => console.log("disconnected:", socket.id));
+});
+
+// ---- Serve a single HTML page with embedded client ----
+app.get("/", (_req, res) => {
+  res.setHeader("Content-Type", "text/html");
+  res.end(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Real-Time Chat — Socket.io</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { font-family: Georgia, "Times New Roman", serif; }
+    body { margin: 0; padding: 18px; background: #fff; }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .panel { border: 3px solid #222; padding: 18px; min-height: 560px; }
+    h1 { text-align: center; font-size: 44px; margin: 0 0 16px; }
+    h2 { text-align: center; font-size: 28px; margin: 0 0 16px; }
+    .input { width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 16px;
+      border: 1px solid #ddd; border-radius: 8px; }
+    .log {
+      border: 1px solid #ddd; border-radius: 8px; margin: 16px 0; height: 340px;
+      padding: 12px; overflow-y: auto; white-space: pre-wrap; background: #fff;
+      font-size: 16px; line-height: 1.44;
+    }
+    .composer { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
+    button {
+      font-size: 16px; padding: 10px 14px; border-radius: 8px; cursor: pointer;
+      border: 1px solid #0b74ff; background: #0b74ff; color: #fff;
+    }
+    button:disabled { opacity: .7; cursor: not-allowed; }
+    .msg .name { font-weight: 700; }
+    .msg .time { color: #666; }
+    @media (max-width: 900px){ .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Real-Time Chat</h1>
+    <div class="row">
+      <div class="panel">
+        <h2>Real-Time Chat</h2>
+        <input class="input" id="nameA" placeholder="Your name" value="Alice" />
+        <div class="log" id="logA"></div>
+        <div class="composer">
+          <textarea class="input" id="textA" rows="2" placeholder="Type your message..."></textarea>
+          <button id="sendA">Send</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Real-Time Chat</h2>
+        <input class="input" id="nameB" placeholder="Your name" value="Bob" />
+        <div class="log" id="logB"></div>
+        <div class="composer">
+          <textarea class="input" id="textB" rows="2" placeholder="Type your message..."></textarea>
+          <button id="sendB">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.io client from this server -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // utility: HH:MM:SS
+    const fmt = (ts) => {
+      const d = new Date(ts), p = (n) => String(n).padStart(2, "0");
+      return \`\${p(d.getHours())}:\${p(d.getMinutes())}:\${p(d.getSeconds())}\`;
+    };
+
+    // two separate sockets so each panel acts like a different browser
+    const socketA = io();
+    const socketB = io();
+
+    const logA = document.getElementById("logA");
+    const logB = document.getElementById("logB");
+
+    const render = (container, msg) => {
+      const div = document.createElement("div");
+      div.className = "msg";
+      div.innerHTML = \`<span class="name">\${msg.name}</span> <span class="time">[\${fmt(msg.ts)}]</span>: \${msg.text}\`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    };
+
+    // Receive messages in both panels
+    socketA.on("chat:message", (m) => render(logA, m));
+    socketB.on("chat:message", (m) => render(logB, m));
+
+    // Send from panel A
+    document.getElementById("sendA").onclick = () => {
+      const name = document.getElementById("nameA").value || "Anonymous";
+      const textEl = document.getElementById("textA");
+      const text = textEl.value.trim();
+      if (!text) return;
+      socketA.emit("chat:message", { name, text });
+      textEl.value = "";
+      textEl.focus();
+    };
+    // Enter to send (A)
+    document.getElementById("textA").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); document.getElementById("sendA").click(); }
+    });
+
+    // Send from panel B
+    document.getElementById("sendB").onclick = () => {
+      const name = document.getElementById("nameB").value || "Anonymous";
+      const textEl = document.getElementById("textB");
+      const text = textEl.value.trim();
+      if (!text) return;
+      socketB.emit("chat:message", { name, text });
+      textEl.value = "";
+      textEl.focus();
+    };
+    // Enter to send (B)
+    document.getElementById("textB").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); document.getElementById("sendB").click(); }
+    });
+  </script>
+</body>
+</html>`);
+});
+
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => console.log(`✅ Open http://localhost:${PORT}`));
