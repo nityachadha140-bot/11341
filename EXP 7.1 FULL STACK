@@ -1,0 +1,152 @@
+
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Sample product data
+const products = [
+  { id: 1, name: "Laptop", price: 75000 },
+  { id: 2, name: "Smartphone", price: 35000 },
+  { id: 3, name: "Headphones", price: 2500 },
+  { id: 4, name: "Smartwatch", price: 12000 },
+];
+
+// Route to get all products
+app.get("/api/products", (req, res) => {
+  res.json(products);
+});
+
+// Route to add a new product
+app.post("/api/products", (req, res) => {
+  const { name, price } = req.body;
+  if (!name || !price) {
+    return res.status(400).json({ error: "Name and price are required" });
+  }
+  const newProduct = { id: products.length + 1, name, price };
+  products.push(newProduct);
+  res.status(201).json(newProduct);
+});
+
+// Start server
+const PORT = 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Backend server running on http://localhost:${PORT}`);
+});
+⚛️ 2️⃣ Frontend (React App using Axios)
+📁 Inside your React project folder (src/App.js):
+
+javascript
+Copy code
+// ===================== FRONTEND CODE (React + Axios) =====================
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+function App() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+
+  // Fetch all products when the component mounts
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = () => {
+    setLoading(true);
+    axios
+      .get("http://localhost:5000/api/products")
+      .then((response) => {
+        setProducts(response.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("⚠️ Failed to fetch products. Please check backend connection.");
+        setLoading(false);
+      });
+  };
+
+  // Add a new product
+  const addProduct = (e) => {
+    e.preventDefault();
+    if (!name || !price) {
+      alert("Please enter both product name and price!");
+      return;
+    }
+
+    axios
+      .post("http://localhost:5000/api/products", { name, price })
+      .then((response) => {
+        setProducts([...products, response.data]);
+        setName("");
+        setPrice("");
+      })
+      .catch(() => alert("Failed to add product!"));
+  };
+
+  if (loading) return <h2 style={{ textAlign: "center" }}>⏳ Loading products...</h2>;
+  if (error) return <h3 style={{ color: "red", textAlign: "center" }}>{error}</h3>;
+
+  return (
+    <div style={{ textAlign: "center", padding: "20px", fontFamily: "Arial" }}>
+      <h1>🛍️ Product List</h1>
+
+      {/* Add Product Form */}
+      <form onSubmit={addProduct} style={{ marginBottom: "30px" }}>
+        <input
+          type="text"
+          placeholder="Product Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={{ padding: "8px", margin: "5px" }}
+        />
+        <input
+          type="number"
+          placeholder="Price"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          style={{ padding: "8px", margin: "5px" }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: "8px 15px",
+            backgroundColor: "#28a745",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          ➕ Add Product
+        </button>
+      </form>
+
+      {/* Display Products */}
+      <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap" }}>
+        {products.map((product) => (
+          <div
+            key={product.id}
+            style={{
+              border: "1px solid #ccc",
+              borderRadius: "10px",
+              padding: "15px",
+              margin: "10px",
+              width: "200px",
+              boxShadow: "0px 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            <h3>{product.name}</h3>
+            <p>💰 Price: ₹{product.price}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default App;
