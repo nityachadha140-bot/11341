@@ -1,0 +1,178 @@
+Step 1: Create the Backend (Node.js + Socket.io)
+Folder Setup
+mkdir chat-server
+cd chat-server
+npm init -y
+npm install express socket.io cors
+
+server.js
+const express = require("express");
+const http = require("http");
+const cors = require("cors");
+const { Server } = require("socket.io");
+
+const app = express();
+app.use(cors());
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Create Socket.io server
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000", // React app URL
+    methods: ["GET", "POST"],
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("New user connected:", socket.id);
+
+  // Listen for messages from clients
+  socket.on("send_message", (data) => {
+    console.log("Message received:", data);
+    // Broadcast message to all clients
+    io.emit("receive_message", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+const PORT = 5000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
+Step 2: Create the React Frontend
+Setup React App
+npx create-react-app chat-client
+cd chat-client
+npm install socket.io-client
+
+src/App.js
+import React, { useEffect, useState } from "react";
+import io from "socket.io-client";
+
+const socket = io("http://localhost:5000"); // connect to backend
+
+function App() {
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+  const [chat, setChat] = useState([]);
+
+  useEffect(() => {
+    // Listen for messages from the server
+    socket.on("receive_message", (data) => {
+      setChat((prev) => [...prev, data]);
+    });
+
+    // Clean up listener when component unmounts
+    return () => socket.off("receive_message");
+  }, []);
+
+  const sendMessage = (e) => {
+    e.preventDefault();
+    if (name && message) {
+      const msgData = {
+        name,
+        message,
+        time: new Date().toLocaleTimeString(),
+      };
+      socket.emit("send_message", msgData);
+      setMessage("");
+    }
+  };
+
+  return (
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
+      <h1>💬 Real-Time Chat</h1>
+
+      {!name ? (
+        <div>
+          <h3>Enter your name to join:</h3>
+          <input
+            type="text"
+            placeholder="Your Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+      ) : (
+        <>
+          <div
+            style={{
+              border: "1px solid #ccc",
+              padding: "10px",
+              height: "300px",
+              overflowY: "scroll",
+              marginBottom: "10px",
+              borderRadius: "5px",
+              backgroundColor: "#f9f9f9",
+            }}
+          >
+            {chat.map((msg, index) => (
+              <div key={index}>
+                <strong>{msg.name}</strong>: {msg.message}{" "}
+                <span style={{ fontSize: "0.8em", color: "#555" }}>
+                  ({msg.time})
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={sendMessage}>
+            <input
+              type="text"
+              placeholder="Type a message..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              style={{ width: "70%" }}
+            />
+            <button type="submit" style={{ marginLeft: "10px" }}>
+              Send
+            </button>
+          </form>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default App;
+
+Step 3: Run Both Servers
+
+In two separate terminals:
+
+Start the backend:
+node server.js
+
+Start the React frontend:
+npm start
+
+Step 4: Test the App
+
+Open the React app in two browser windows
+→ e.g., http://localhost:3000
+
+Enter different names in each window.
+
+Send messages — they should appear instantly in both windows.
+
+💬 Expected Output
+
+In Browser:
+
+💬 Real-Time Chat
+
+Alice: Hello everyone! (10:30:12 AM)
+Bob: Hi Alice! (10:30:15 AM)
+
+
+In Terminal:
+
+Server running on port 5000
+New user connected: oD1f8k9u3
+Message received: { name: 'Alice', message: 'Hello everyone!' }
+Message received: { name: 'Bob', message: 'Hi Alice!' }
