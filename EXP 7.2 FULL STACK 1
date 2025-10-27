@@ -1,0 +1,212 @@
+Step 1: Setup React App
+
+Create a new React project:
+
+npx create-react-app redux-shopping-cart
+cd redux-shopping-cart
+npm install @reduxjs/toolkit react-redux
+
+Step 2: Set Up Redux Store
+src/app/store.js
+import { configureStore } from '@reduxjs/toolkit';
+import cartReducer from '../features/cartSlice';
+
+export const store = configureStore({
+  reducer: {
+    cart: cartReducer,
+  },
+});
+
+Step 3: Create a Slice for Cart State
+src/features/cartSlice.js
+import { createSlice } from '@reduxjs/toolkit';
+
+const initialState = {
+  items: [], // Each item: { id, name, price, quantity }
+};
+
+const cartSlice = createSlice({
+  name: 'cart',
+  initialState,
+  reducers: {
+    addItem: (state, action) => {
+      const item = action.payload;
+      const existingItem = state.items.find((i) => i.id === item.id);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        state.items.push({ ...item, quantity: 1 });
+      }
+    },
+    removeItem: (state, action) => {
+      state.items = state.items.filter((i) => i.id !== action.payload);
+    },
+    updateQuantity: (state, action) => {
+      const { id, quantity } = action.payload;
+      const item = state.items.find((i) => i.id === id);
+      if (item) item.quantity = quantity;
+    },
+  },
+});
+
+export const { addItem, removeItem, updateQuantity } = cartSlice.actions;
+export default cartSlice.reducer;
+
+Step 4: Provide the Store to the App
+src/index.js
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import { Provider } from 'react-redux';
+import { store } from './app/store';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <Provider store={store}>
+    <App />
+  </Provider>
+);
+
+Step 5: Create Components
+src/App.js
+import React from 'react';
+import ProductList from './components/ProductList';
+import Cart from './components/Cart';
+
+function App() {
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1> Redux Toolkit Shopping Cart</h1>
+      <hr />
+      <ProductList />
+      <Cart />
+    </div>
+  );
+}
+
+export default App;
+
+src/components/ProductList.js
+import React from 'react';
+import { useDispatch } from 'react-redux';
+import { addItem } from '../features/cartSlice';
+
+const products = [
+  { id: 1, name: 'Laptop', price: 80000 },
+  { id: 2, name: 'Smartphone', price: 45000 },
+  { id: 3, name: 'Headphones', price: 2000 },
+];
+
+function ProductList() {
+  const dispatch = useDispatch();
+
+  return (
+    <div>
+      <h2>Products</h2>
+      {products.map((p) => (
+        <div
+          key={p.id}
+          style={{
+            border: '1px solid #ddd',
+            padding: '10px',
+            marginBottom: '8px',
+            borderRadius: '8px',
+          }}
+        >
+          <strong>{p.name}</strong> — ₹{p.price}
+          <button
+            style={{ marginLeft: '15px' }}
+            onClick={() => dispatch(addItem(p))}
+          >
+            Add to Cart
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default ProductList;
+
+src/components/Cart.js
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { removeItem, updateQuantity } from '../features/cartSlice';
+
+function Cart() {
+  const cartItems = useSelector((state) => state.cart.items);
+  const dispatch = useDispatch();
+
+  const total = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
+  return (
+    <div style={{ marginTop: '30px' }}>
+      <h2>Cart</h2>
+      {cartItems.length === 0 ? (
+        <p>Your cart is empty.</p>
+      ) : (
+        <div>
+          {cartItems.map((item) => (
+            <div
+              key={item.id}
+              style={{
+                border: '1px solid #aaa',
+                padding: '10px',
+                marginBottom: '8px',
+                borderRadius: '8px',
+              }}
+            >
+              <strong>{item.name}</strong> — ₹{item.price} ×
+              <input
+                type="number"
+                min="1"
+                value={item.quantity}
+                onChange={(e) =>
+                  dispatch(
+                    updateQuantity({
+                      id: item.id,
+                      quantity: parseInt(e.target.value),
+                    })
+                  )
+                }
+                style={{ width: '60px', margin: '0 10px' }}
+              />
+              = ₹{item.price * item.quantity}
+              <button
+                style={{ marginLeft: '15px' }}
+                onClick={() => dispatch(removeItem(item.id))}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <h3>Total: ₹{total}</h3>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default Cart;
+
+Step 6: Run and Test
+
+Run the app:
+
+npm start
+
+
+
+
+✅ Expected Output
+🛍️ Product List
+Laptop — ₹80000 [Add to Cart]
+Smartphone — ₹45000 [Add to Cart]
+Headphones — ₹2000 [Add to Cart]
+
+🧾 Cart (after adding)
+Laptop — ₹80000 × 1 = ₹80000 [Remove]
+Total: ₹80000
