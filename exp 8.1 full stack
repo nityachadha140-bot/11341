@@ -1,0 +1,149 @@
+Step 1: Create a New React App
+
+npx create-react-app login-form
+cd login-form
+npm start
+
+Step 2: Edit src/App.js
+
+import React, { useState } from "react";
+
+function App() {
+  // Step 1: Create state variables
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  // Step 2: Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // Basic validation
+    if (!username || !password) {
+      setError("Both fields are required!");
+      return;
+    }
+
+    setError(""); // Clear error if inputs are valid
+
+    // Log credentials (simulation)
+    console.log("Username:", username);
+    console.log("Password:", password);
+
+    alert(`Welcome, ${username}!`);
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        backgroundColor: "#f4f4f9",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          backgroundColor: "white",
+          padding: "30px",
+          borderRadius: "10px",
+          boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+          width: "300px",
+        }}
+      >
+        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Login</h2>
+
+        <div style={{ marginBottom: "15px" }}>
+          <label>Username:</label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px",
+              marginTop: "5px",
+              borderRadius: "5px",
+              border: "1px solid #ccc",
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: "15px" }}>
+          <label>Password:</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px",
+              marginTop: "5px",
+              borderRadius: "5px",
+              border: "1px solid #ccc",
+            }}
+          />
+        </div>
+
+        {error && (
+          <p style={{ color: "red", textAlign: "center" }}>{error}</p>
+        )}
+
+        <button
+          type="submit"
+          style={{
+            width: "100%",
+            padding: "10px",
+            backgroundColor: "#4CAF50",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Login
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default App;
+
+Step 3: Test the App
+
+Run:
+
+npm start
+
+
+Enter a username and password → Click Login
+The console should show:
+
+Username: testuser
+Password: 12345
+
+
+Try submitting with empty fields →
+ You should see an error message: “Both fields are required!”
+
+🧠 Concepts Demonstrated
+
+
+💬 Expected Output
+
+On the browser:
+
+[Login Form with Username and Password fields]
+
+✅ Shows an alert “Welcome, <username>!”
+⚠️ Shows validation message if fields are empty.
+
+
+In the console:
+
+Username: Nitya
+Password: 1234
